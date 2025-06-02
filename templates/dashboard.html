@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Health Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e6ecf0, #f7f9fc);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.97);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 1rem;
+            z-index: 1000;
+        }
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        nav ul li { margin: 0.5rem 1rem; }
+        nav ul li button, nav ul li a {
+            color: #4682b4;
+            background: none;
+            border: none;
+            font-weight: 500;
+            text-decoration: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        nav ul li button:hover, nav ul li a:hover, nav ul li button.active {
+            background: #87ceeb;
+            color: #fff;
+            transform: translateY(-2px);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 6rem auto 2rem;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+        }
+        h1 {
+            color: #4682b4;
+            font-size: 2.5rem;
+            text-align: center;
+            margin: 2rem 0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            grid-column: 1 / -1;
+        }
+        h2 { color: #4682b4; font-size: 1.6rem; margin-bottom: 1rem; }
+        h3 { color: #87ceeb; font-size: 1.2rem; margin: 1rem 0 0.5rem; }
+        p.description { color: #555; font-size: 0.9rem; margin-bottom: 1rem; }
+        p.inference { color: #777; font-style: italic; font-size: 0.9rem; margin-top: 1rem; }
+        canvas { max-width: 100%; border-radius: 10px; margin-bottom: 1rem; }
+        #alert-counter { color: #ff6347; font-weight: 700; }
+        #alert-error { color: #ff6347; font-style: italic; display: none; }
+        .card:not(.active) { display: none; }
+        .prediction-list, #trends-list, #recommendations-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .prediction-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .prediction-list li:last-child { border-bottom: none; }
+        .prediction-list strong { color: #4682b4; }
+        .prediction-list span { color: #ff6347; font-weight: 500; }
+        #recommendations-list li { color: #87ceeb; font-weight: 500; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 0.75rem;
+            text-align: center;
+        }
+        th {
+            background: #f0f8ff;
+            color: #4682b4;
+            font-weight: 500;
+        }
+        .correlation-positive { color: #32cd32; }
+        .correlation-negative { color: #ff6347; }
+        @media (max-width: 768px) {
+            nav ul { flex-direction: column; align-items: center; }
+            nav ul li { margin: 0.3rem 0; }
+            h1 { font-size: 2rem; }
+            .container { grid-template-columns: 1fr; }
+            table { font-size: 0.8rem; padding: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><button id="btn-stress-course" class="active">Stress by Course</button></li>
+            <li><button id="btn-stress-sleep">Stress by Sleep</button></li>
+            <li><button id="btn-stress-dist">Stress Distribution</button></li>
+            <li><button id="btn-alerts">High-Stress Alerts</button></li>
+            <li><button id="btn-insights">Key Insights</button></li>
+            <li><button id="btn-prediction">Prediction Insights</button></li>
+            <li><button id="btn-anxiety-course">Anxiety by Course</button></li>
+            <li><button id="btn-depression-social">Depression by Social Support</button></li>
+            <li><button id="btn-stress-activity">Stress by Activity</button></li>
+            <li><button id="btn-stress-diet">Stress by Diet</button></li>
+            <li><button id="btn-stress-credit">Stress by Credit Load</button></li>
+            <li><button id="btn-data-dist">Data Distribution</button></li>
+            <li><button id="btn-data-balance">Data Balance</button></li>
+            <li><button id="btn-correlations">Correlations</button></li>
+            <li><a href="/eda">EDA Visualizations</a></li>
+            <li><a href="/intro">Introduction</a></li>
+            <li><a href="/conclusion">Conclusion</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Mental Health Dashboard</h1>
+        <p class="description" style="grid-column: 1 / -1; color: #4682b4; text-align: center;">Explore student mental health trends with interactive insights.</p>
+
+        <div id="stress-course" class="card active">
+            <h2>Average Stress by Course</h2>
+            <p class="description">Stress levels across different courses (0-5 scale).</p>
+            <canvas id="stressByCourseChart"></canvas>
+            <p class="inference" id="stress-course-inference"></p>
+        </div>
+
+        <div id="stress-sleep" class="card">
+            <h2>Average Stress by Sleep Quality</h2>
+            <p class="description">Impact of sleep quality on stress (0-5 scale).</p>
+            <canvas id="stressBySleepChart"></canvas>
+            <p class="inference" id="stress-sleep-inference"></p>
+        </div>
+
+        <div id="stress-dist" class="card">
+            <h2>Stress Level Distribution</h2>
+            <p class="description">Count of students at each stress level (0-5).</p>
+            <canvas id="stressDistributionChart"></canvas>
+            <p class="inference" id="stress-dist-inference"></p>
+        </div>
+
+        <div id="alerts-section" class="card">
+            <h2>High-Stress Alerts</h2>
+            <p class="description">Students with stress > 4, updated every 5s.</p>
+            <p>Count: <span id="alert-counter">Loading...</span></p>
+            <p id="alert-error">Error fetching data.</p>
+            <p class="inference" id="alerts-inference"></p>
+        </div>
+
+        <div id="insights" class="card">
+            <h2>Key Insights</h2>
+            <p class="description">Trends and recommendations from the data.</p>
+            <h3>Trends</h3>
+            <ul id="trends-list"></ul>
+            <h3>Recommendations</h3>
+            <ul id="recommendations-list"></ul>
+            <p class="inference" id="insights-inference"></p>
+        </div>
+
+        <div id="prediction" class="card">
+            <h2>Prediction Insights</h2>
+            <p class="description">Model metrics and top stress predictors.</p>
+            <ul class="prediction-list">
+                <li><strong>Accuracy</strong><span>{{ "%.2f" % metrics['Accuracy'] }}</span></li>
+                <li><strong>Precision</strong><span>{{ "%.2f" % metrics['Precision'] }}</span></li>
+                <li><strong>Recall</strong><span>{{ "%.2f" % metrics['Recall'] }}</span></li>
+                <li><strong>F1 Score</strong><span>{{ "%.2f" % metrics['F1 Score'] }}</span></li>
+            </ul>
+            <h2>Top Factors</h2>
+            <canvas id="featureImportanceChart"></canvas>
+            <p class="inference">High accuracy suggests reliable stress prediction.</p>
+        </div>
+
+        <div id="anxiety-course" class="card">
+            <h2>Average Anxiety by Course</h2>
+            <p class="description">Anxiety levels across courses (0-5 scale).</p>
+            <canvas id="anxietyByCourseChart"></canvas>
+            <p class="inference" id="anxiety-course-inference"></p>
+        </div>
+
+        <div id="depression-social" class="card">
+            <h2>Average Depression by Social Support</h2>
+            <p class="description">Depression vs. social support (0-5 scale).</p>
+            <canvas id="depressionBySocialChart"></canvas>
+            <p class="inference" id="depression-social-inference"></p>
+        </div>
+
+        <div id="stress-activity" class="card">
+            <h2>Average Stress by Activity Level</h2>
+            <p class="description">Stress vs. physical activity (0-5 scale).</p>
+            <canvas id="stressByActivityChart"></canvas>
+            <p class="inference" id="stress-activity-inference"></p>
+        </div>
+
+        <div id="stress-diet" class="card">
+            <h2>Average Stress by Diet Quality</h2>
+            <p class="description">Stress vs. diet quality (0-5 scale).</p>
+            <canvas id="stressByDietChart"></canvas>
+            <p class="inference" id="stress-diet-inference"></p>
+        </div>
+
+        <div id="stress-credit" class="card">
+            <h2>Average Stress by Credit Load</h2>
+            <p class="description">Stress vs. semester credit load.</p>
+            <canvas id="stressByCreditChart"></canvas>
+            <p class="inference" id="stress-credit-inference"></p>
+        </div>
+
+        <div id="data-dist" class="card">
+            <h2>Data Distribution</h2>
+            <p class="description">Counts across key variables.</p>
+            <canvas id="stressDistChart"></canvas>
+            <canvas id="genderDistChart"></canvas>
+            <canvas id="courseDistChart"></canvas>
+            <p class="inference" id="data-dist-inference"></p>
+        </div>
+
+        <div id="data-balance" class="card">
+            <h2>Data Balance</h2>
+            <p class="description">Percentage balance of key variables.</p>
+            <canvas id="stressBalanceChart"></canvas>
+            <canvas id="genderBalanceChart"></canvas>
+            <canvas id="courseBalanceChart"></canvas>
+            <p class="inference" id="data-balance-inference"></p>
+        </div>
+
+        <div id="correlations" class="card">
+            <h2>Correlations</h2>
+            <p class="description">Correlations between numerical factors (-1 to 1).</p>
+            <table id="correlation-table">
+                <thead><tr><th>Factor 1</th><th>Factor 2</th><th>Correlation</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <p class="inference" id="correlations-inference"></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const buttons = document.querySelectorAll("nav ul li button");
+            const sections = document.querySelectorAll(".card");
+            let alertInterval = null;
+            let charts = {};
+
+            buttons.forEach(button => {
+                button.addEventListener("click", () => {
+                    buttons.forEach(btn => btn.classList.remove("active"));
+                    button.classList.add("active");
+                    sections.forEach(section => section.classList.remove("active"));
+                    const sectionId = button.id === "btn-alerts" ? "alerts-section" : button.id.replace("btn-", "");
+                    const targetSection = document.getElementById(sectionId);
+                    if (targetSection) targetSection.classList.add("active");
+
+                    if (button.id === "btn-stress-course") fetchStressByCourse();
+                    else if (button.id === "btn-stress-sleep") fetchStressBySleep();
+                    else if (button.id === "btn-stress-dist") fetchStressDistribution();
+                    else if (button.id === "btn-alerts") {
+                        updateAlerts();
+                        if (alertInterval) clearInterval(alertInterval);
+                        alertInterval = setInterval(updateAlerts, 5000);
+                    } else if (button.id === "btn-insights") fetchKeyInsights();
+                    else if (button.id === "btn-prediction") fetchFeatureImportance();
+                    else if (button.id === "btn-anxiety-course") fetchAnxietyByCourse();
+                    else if (button.id === "btn-depression-social") fetchDepressionBySocial();
+                    else if (button.id === "btn-stress-activity") fetchStressByActivity();
+                    else if (button.id === "btn-stress-diet") fetchStressByDiet();
+                    else if (button.id === "btn-stress-credit") fetchStressByCredit();
+                    else if (button.id === "btn-data-dist") fetchDataDistribution();
+                    else if (button.id === "btn-data-balance") fetchDataBalance();
+                    else if (button.id === "btn-correlations") fetchCorrelations();
+                    else if (alertInterval) {
+                        clearInterval(alertInterval);
+                        alertInterval = null;
+                    }
+                });
+            });
+
+            function fetchStressByCourse() {
+                fetch("/api/stress_by_course").then(response => response.json()).then(response => {
+                    if (charts.stressByCourseChart) charts.stressByCourseChart.destroy();
+                    charts.stressByCourseChart = new Chart(document.getElementById("stressByCourseChart").getContext("2d"), {
+                        type: "bar", data: { labels: response.data.map(item => item.course), datasets: [{ label: "Average Stress", data: response.data.map(item => item.average_stress), backgroundColor: "rgba(70, 130, 180, 0.7)", borderColor: "#4682b4", borderWidth: 1 }] },
+                        options: { scales: { y: { beginAtZero: true, max: 5 } }, animation: { duration: 1000, easing: 'easeOutQuart' } }
+                    });
+                    document.getElementById("stress-course-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function fetchStressBySleep() {
+                fetch("/api/stress_by_sleep").then(response => response.json()).then(response => {
+                    if (charts.stressBySleepChart) charts.stressBySleepChart.destroy();
+                    charts.stressBySleepChart = new Chart(document.getElementById("stressBySleepChart").getContext("2d"), {
+                        type: "bar", data: { labels: response.data.map(item => item.sleep_quality), datasets: [{ label: "Average Stress", data: response.data.map(item => item.average_stress), backgroundColor: "rgba(70, 130, 180, 0.7)", borderColor: "#4682b4", borderWidth: 1 }] },
+                        options: { scales: { y: { beginAtZero: true, max: 5 } } }
+                    });
+                    document.getElementById("stress-sleep-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function fetchStressDistribution() {
+                fetch("/api/stress_distribution").then(response => response.json()).then(response => {
+                    if (charts.stressDistributionChart) charts.stressDistributionChart.destroy();
+                    charts.stressDistributionChart = new Chart(document.getElementById("stressDistributionChart").getContext("2d"), {
+                        type: "bar", data: { labels: response.data.map(item => item.stress_level), datasets: [{ label: "Count", data: response.data.map(item => item.count), backgroundColor: "rgba(50, 205, 50, 0.7)", borderColor: "#32cd32", borderWidth: 1 }] },
+                        options: { scales: { y: { beginAtZero: true } } }
+                    });
+                    document.getElementById("stress-dist-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function updateAlerts() {
+                fetch("/api/high_stress_alerts").then(response => response.json()).then(response => {
+                    document.getElementById("alert-counter").textContent = response.data.length;
+                    document.getElementById("alert-error").style.display = response.data ? "none" : "block";
+                    document.getElementById("alerts-inference").textContent = response.inference;
+                }).catch(error => {
+                    document.getElementById("alert-counter").textContent = "N/A";
+                    document.getElementById("alert-error").style.display = "block";
+                    console.error("Error:", error);
+                });
+            }
+
+            function fetchKeyInsights() {
+                fetch("/api/key_insights").then(response => response.json()).then(response => {
+                    const trendsList = document.getElementById("trends-list");
+                    const recommendationsList = document.getElementById("recommendations-list");
+                    trendsList.innerHTML = "";
+                    recommendationsList.innerHTML = "";
+                    response.data.Trends.forEach(trend => {
+                        const li = document.createElement("li");
+                        li.textContent = trend;
+                        trendsList.appendChild(li);
+                    });
+                    response.data.Recommendations.forEach(recommendation => {
+                        const li = document.createElement("li");
+                        li.textContent = recommendation;
+                        recommendationsList.appendChild(li);
+                    });
+                    document.getElementById("insights-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function fetchFeatureImportance() {
+                const features = JSON.parse('{{ feature_importance | tojson | safe }}');
+                if (charts.featureImportanceChart) charts.featureImportanceChart.destroy();
+                charts.featureImportanceChart = new Chart(document.getElementById("featureImportanceChart").getContext("2d"), {
+                    type: "bar", data: { labels: features.map(f => f[0]), datasets: [{ label: "Importance", data: features.map(f => f[1]), backgroundColor: "rgba(255, 99, 71, 0.7)", borderColor: "#ff6347", borderWidth: 1 }] },
+                    options: { scales: { y: { beginAtZero: true } } }
+                });
+            }
+
+            function fetchAnxietyByCourse() {
+                fetch("/api/anxiety_by_course").then(response => response.json()).then(response => {
+                    if (charts.anxietyByCourseChart) charts.anxietyByCourseChart.destroy();
+                    charts.anxietyByCourseChart = new Chart(document.getElementById("anxietyByCourseChart").getContext("2d"), {
+                        type: "bar", data: { labels: response.data.map(item => item.course), datasets: [{ label: "Average Anxiety", data: response.data.map(item => item.average_anxiety), backgroundColor: "rgba(135, 206, 235, 0.7)", borderColor: "#87ceeb", borderWidth: 1 }] },
+                        options: { scales: { y: { beginAtZero: true, max: 5 } } }
+                    });
+                    document.getElementById("anxiety-course-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function fetchDepressionBySocial() {
+                fetch("/api/depression_by_social_support").then(response => response.json()).then(response => {
+                    if (charts.depressionBySocialChart) charts.depressionBySocialChart.destroy();
+                    charts.depressionBySocialChart = new Chart(document.getElementById("depressionBySocialChart").getContext("2d"), {
+                        type: "bar", data: { labels: response.data.map(item => item.social_support), datasets: [{ label: "Average Depression", data: response.data.map(item => item.average_depression), backgroundColor: "rgba(255, 165, 0, 0.7)", borderColor: "#ffa500", borderWidth: 1 }] },
+                        options: { scales: { y: { beginAtZero: true, max: 5 } } }
+                    });
+                    document.getElementById("depression-social-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function fetchStressByActivity() {
+                fetch("/api/stress_by_activity").then(response => response.json()).then(response => {
+                    if (charts.stressByActivityChart) charts.stressByActivityChart.destroy();
+                    charts.stressByActivityChart = new Chart(document.getElementById("stressByActivityChart").getContext("2d"), {
+                        type: "bar", data: { labels: response.data.map(item => item.activity_level), datasets: [{ label: "Average Stress", data: response.data.map(item => item.average_stress), backgroundColor: "rgba(50, 205, 50, 0.7)", borderColor: "#32cd32", borderWidth: 1 }] },
+                        options: { scales: { y: { beginAtZero: true, max: 5 } } }
+                    });
+                    document.getElementById("stress-activity-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function fetchStressByDiet() {
+                fetch("/api/stress_by_diet").then(response => response.json()).then(response => {
+                    if (charts.stressByDietChart) charts.stressByDietChart.destroy();
+                    charts.stressByDietChart = new Chart(document.getElementById("stressByDietChart").getContext("2d"), {
+                        type: "bar", data: { labels: response.data.map(item => item.diet_quality), datasets: [{ label: "Average Stress", data: response.data.map(item => item.average_stress), backgroundColor: "rgba(147, 112, 219, 0.7)", borderColor: "#9370db", borderWidth: 1 }] },
+                        options: { scales: { y: { beginAtZero: true, max: 5 } } }
+                    });
+                    document.getElementById("stress-diet-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function fetchStressByCredit() {
+                fetch("/api/stress_by_credit_load").then(response => response.json()).then(response => {
+                    if (charts.stressByCreditChart) charts.stressByCreditChart.destroy();
+                    charts.stressByCreditChart = new Chart(document.getElementById("stressByCreditChart").getContext("2d"), {
+                        type: "bar", data: { labels: response.data.map(item => item.credit_load), datasets: [{ label: "Average Stress", data: response.data.map(item => item.average_stress), backgroundColor: "rgba(255, 99, 71, 0.7)", borderColor: "#ff6347", borderWidth: 1 }] },
+                        options: { scales: { y: { beginAtZero: true, max: 5 } } }
+                    });
+                    document.getElementById("stress-credit-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function fetchDataDistribution() {
+                fetch("/api/data_distribution").then(response => response.json()).then(response => {
+                    const data = response.data;
+                    if (charts.stressDistChart) charts.stressDistChart.destroy();
+                    charts.stressDistChart = new Chart(document.getElementById("stressDistChart").getContext("2d"), {
+                        type: "bar", data: { labels: data.Stress_Level.map(item => item.category), datasets: [{ label: "Stress Level", data: data.Stress_Level.map(item => item.count), backgroundColor: "rgba(50, 205, 50, 0.7)" }] },
+                        options: { scales: { y: { beginAtZero: true } } }
+                    });
+                    if (charts.genderDistChart) charts.genderDistChart.destroy();
+                    charts.genderDistChart = new Chart(document.getElementById("genderDistChart").getContext("2d"), {
+                        type: "bar", data: { labels: data.Gender.map(item => item.category), datasets: [{ label: "Gender", data: data.Gender.map(item => item.count), backgroundColor: "rgba(135, 206, 235, 0.7)" }] },
+                        options: { scales: { y: { beginAtZero: true } } }
+                    });
+                    if (charts.courseDistChart) charts.courseDistChart.destroy();
+                    charts.courseDistChart = new Chart(document.getElementById("courseDistChart").getContext("2d"), {
+                        type: "bar", data: { labels: data.Course.map(item => item.category), datasets: [{ label: "Course", data: data.Course.map(item => item.count), backgroundColor: "rgba(255, 165, 0, 0.7)" }] },
+                        options: { scales: { y: { beginAtZero: true } } }
+                    });
+                    document.getElementById("data-dist-inference").textContent = response.inference;
+                }).catch(error => console.error("Error:", error));
+            }
+
+            function fetchDataBalance() {
+                fetch("/api/data_balance").then(response => response.json()).then(response => {
+                    const data = response.data;
+                    if (charts.stressBalanceChart) charts.stressBalanceChart.destroy();
+                    charts.stressBalanceChart = new Chart(document.getElementById("stressBalanceChart").getContext("2d"), {
+                        type: "pie", 
+                        data: { 
+                            labels: data.Stress_Level.map(item => `${item.category} (${item.count})`), 
+                            datasets: [{ 
+                                data: data.Stress_Level.map(item => item.percentage), 
+                                backgroundColor: ["#4682b4", "#87ceeb", "#ff6347", "#32cd32", "#ffa500"] 
+                            }] 
+                        },
+                        options: { 
+                            plugins: { 
+                                tooltip: { 
+                                    callbacks: { 
+                                        label: ctx => `${ctx.label}: ${ctx.raw.toFixed(1)}%` 
+                                    } 
+                                } 
+                            } 
+                        }
+                    });
+                    if (charts.genderBalanceChart) charts.genderBalanceChart.destroy();
+                    charts.genderBalanceChart = new Chart(document.getElementById("genderBalanceChart").getContext("2d"), {
+                        type: "pie", 
+                        data: { 
+                            labels: data.Gender.map(item => `${item.category} (${item.count})`), 
+                            datasets: [{ 
+                                data: data.Gender.map(item => item.percentage), 
+                                backgroundColor: ["#4682b4", "#87ceeb"] 
+                            }] 
+                        },
+                        options: { 
+                            plugins: { 
+                                tooltip: { 
+                                    callbacks: { 
+                                        label: ctx => `${ctx.label}: ${ctx.raw.toFixed(1)}%` 
+                                    } 
+                                } 
+                            } 
+                        }
+                    });
+                    if (charts.courseBalanceChart) charts.courseBalanceChart.destroy();
+                    charts.courseBalanceChart = new Chart(document.getElementById("courseBalanceChart").getContext("2d"), {
+                        type: "pie", 
+                        data: { 
+                            labels: data.Course.map(item => `${item.category} (${item.count})`), 
+                            datasets: [{ 
+                                data: data.Course.map(item => item.percentage), 
+                                backgroundColor: ["#4682b4", "#87ceeb", "#ff6347", "#32cd32", "#ffa500"] 
+                            }] 
+                        },
+                        options: { 
+                            plugins: { 
+                                tooltip: { 
+                                    callbacks: { 
+                                        label: ctx => `${ctx.label}: ${ctx.raw.toFixed(1)}%` 
+                                    } 
+                                } 
+                            } 
+                        }
+                    });
+                    document.getElementById("data-balance-inference").textContent = response.inference;
+                }).catch(error => console.error("Error fetching data balance:", error));
+            }
+
+            function fetchCorrelations() {
+                fetch("/api/correlations").then(response => response.json()).then(response => {
+                    const tbody = document.querySelector("#correlation-table tbody");
+                    tbody.innerHTML = "";
+                    response.data.forEach(item => {
+                        const tr = document.createElement("tr");
+                        const corrClass = item.correlation > 0 ? "correlation-positive" : "correlation-negative";
+                        tr.innerHTML = `<td>${item.var1}</td><td>${item.var2}</td><td class="${corrClass}">${item.correlation.toFixed(2)}</td>`;
+                        tbody.appendChild(tr);
+                    });
+                    document.getElementById("correlations-inference").textContent = response.inference;
+                }).catch(error => {
+                    console.error("Error fetching correlations:", error);
+                    document.getElementById("correlations-inference").textContent = "Error loading correlations.";
+                });
+            }
+
+            fetchStressByCourse(); // Load default chart
+        });
+    </script>
+</body>
+</html>

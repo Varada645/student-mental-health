@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Introduction - Student Mental Health Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Montserrat', sans-serif; 
+            margin: 0; 
+            background-color: #f7f7f7; 
+            color: #333; 
+        }
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 15px 0;
+            z-index: 1000;
+        }
+        nav ul {
+            list-style-type: none;
+            padding: 0;
+            text-align: center;
+        }
+        nav ul li {
+            display: inline;
+            margin: 0 20px;
+        }
+        nav ul li a {
+            color: #555;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 10px 15px;
+            border-radius: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        nav ul li a:hover {
+            background-color: #ffe6e6;
+            color: #e91e63;
+        }
+        .content {
+            max-width: 800px;
+            margin: 100px auto 20px;
+            padding: 20px;
+        }
+        h1 {
+            color: #e91e63;
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            font-size: 1.5em;
+        }
+        p.description {
+            color: #888;
+            font-size: 0.9em;
+            margin: 10px 0;
+        }
+        .highlight-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin: 20px 0;
+        }
+        canvas {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/intro">Introduction</a></li>
+            <li><a href="/conclusion">Conclusion</a></li>
+        </ul>
+    </nav>
+
+    <div class="content">
+        <h1>Introduction</h1>
+        <p class="description">An overview of how data reveals student mental health trends.</p>
+
+        <div class="highlight-box">
+            <h2>Project Highlights</h2>
+            <p class="description">Key features driving impactful mental health insights.</p>
+            <ul>
+                <li><strong>Data-Driven Insights:</strong> Analyzes stress patterns using sleep, activity, and CGPA.</li>
+                <li><strong>Real-Time Monitoring:</strong> Tracks high-stress students on the dashboard.</li>
+                <li><strong>Clustering & Prediction:</strong> K-Means and Random Forest for stress analysis.</li>
+                <li><strong>Interactive Visualizations:</strong> Dynamic charts and EDA plots.</li>
+            </ul>
+        </div>
+
+        <h2>Stress Trend Timeline</h2>
+        <p class="description">Shows how average stress levels fluctuate over a six-month period.</p>
+        <canvas id="stressTrendChart"></canvas>
+    </div>
+
+    <script>
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+        const stressLevels = [2.5, 2.8, 3.2, 3.0, 3.5, 3.3];
+        new Chart(document.getElementById("stressTrendChart").getContext("2d"), {
+            type: "line",
+            data: {
+                labels: months,
+                datasets: [{
+                    label: "Average Stress",
+                    data: stressLevels,
+                    borderColor: "#e91e63",
+                    backgroundColor: "rgba(233, 30, 99, 0.1)",
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true, max: 5, title: { display: true, text: "Stress Level" } },
+                    x: { title: { display: true, text: "Month" } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
